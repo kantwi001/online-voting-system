@@ -57,7 +57,36 @@ This guide will help you deploy the Online Voting System (Flask API, React front
 
 ---
 
-## 6. Useful Commands
+## 6. Admin Management & Automation
+
+### Admin Password Reset
+To reset the admin password (e.g., for username `kantwi`):
+
+```sh
+cd backend
+NEW_ADMIN_PASSWORD="your_new_password" python3 reset_admin_password.py
+```
+
+Or use the automation script:
+
+```sh
+./admin_tasks.sh reset-admin-password your_new_password
+```
+
+### Database Migration (Create Tables)
+
+```sh
+./admin_tasks.sh migrate-db
+```
+
+### Note on Database Files
+- The database file (`backend/instance/voting.db`) is **not tracked in git** for security and privacy reasons.
+- Always backup your database file regularly.
+- If you need to share schema changes, use migration tools (e.g., Flask-Migrate).
+
+---
+
+## 7. Useful Commands
 - **Backend:**
   ```sh
   cd backend
