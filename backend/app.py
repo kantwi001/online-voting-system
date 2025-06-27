@@ -266,6 +266,13 @@ def user_count():
     count = User.query.count()
     return jsonify({'count': count})
 
+@app.route('/')
+def index():
+    return (
+        '<h2>Online Voting API is running!</h2>'
+        '<p>Try <a href="/elections">/elections</a> or <a href="/admin/election_summary">/admin/election_summary</a> for API data.</p>'
+    )
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
