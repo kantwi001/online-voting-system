@@ -267,6 +267,11 @@ def user_count():
     return jsonify({'count': count})
 
 if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--host', default='0.0.0.0')
+    parser.add_argument('--port', type=int, default=8080)
+    args = parser.parse_args()
     with app.app_context():
         db.create_all()
-    app.run(debug=True, port=5001)
+    app.run(debug=False, host=args.host, port=args.port)
