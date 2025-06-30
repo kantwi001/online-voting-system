@@ -9,6 +9,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 const api = 'http://127.0.0.1:8080';
 
 function App() {
+  // UI State
   const [view, setView] = useState('login');
   const [changePw, setChangePw] = useState({ current: '', new: '', confirm: '' });
   const [pwMsg, setPwMsg] = useState('');
@@ -25,9 +26,12 @@ function App() {
   const [results, setResults] = useState(null);
   const [resultsOpen, setResultsOpen] = useState(false);
   const [resultsElectionTitle, setResultsElectionTitle] = useState('');
-
   const [newElection, setNewElection] = useState({ title: '', candidates: [] });
   const [error, setError] = useState('');
+  // Added for improved UX
+  const [successMsg, setSuccessMsg] = useState('');
+  const [candidateToDelete, setCandidateToDelete] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (view === 'dashboard') {
@@ -199,51 +203,48 @@ function App() {
                             Vote
                           </Button>
                           {role === 'admin' && username === 'kantwi' && (
-                            <Button size="small" variant="outlined" color="error" onClick={async () => {
-                              try {
-                                await axios.delete(`${api}/candidates/${c.id}`, {
-  data: { username },
-  headers: { 'Content-Type': 'application/json' }
-});
-                                // Refresh elections
-                                const res = await axios.get(`${api}/elections`);
-                                setElections(res.data);
-                              } catch (err) {
-                                setError('Failed to delete candidate');
-                              }
-                            }} sx={{ ml: 1 }}>
-                              Remove
-                            </Button>
-                          )}
+  <Button size="small" variant="outlined" color="error"
+    onClick={() => {
+      setCandidateToDelete({ id: c.id, electionId: e.id });
+      setConfirmOpen(true);
+    }} sx={{ ml: 1 }}>
+    Remove
+  </Button>
+)}
                         </Paper>
                       ))}
                       {/* Add Candidate Form (admin only) */}
                       {role === 'admin' && username === 'kantwi' && (
-                        <Box sx={{ mt: 2, display: 'flex', gap: 1, alignItems: 'center' }}>
-                          <TextField size="small" label="New Candidate Name" value={e._newCandidateName || ''}
-                            onChange={ev => setElections(elections.map(el => el.id === e.id ? { ...el, _newCandidateName: ev.target.value } : el))} />
-                          <TextField size="small" label="Photo URL (optional)" value={e._newCandidatePhoto || ''}
-                            onChange={ev => setElections(elections.map(el => el.id === e.id ? { ...el, _newCandidatePhoto: ev.target.value } : el))} />
-                          <Button size="small" variant="contained" color="primary" onClick={async () => {
-                            try {
-                              await axios.post(`${api}/elections/${e.id}/candidates`, {
-  name: e._newCandidateName,
-  photo_url: e._newCandidatePhoto,
-  username
-}, {
-  headers: { 'Content-Type': 'application/json' }
-});
-                              // Refresh elections
-                              const res = await axios.get(`${api}/elections`);
-                              setElections(res.data);
-                              // Clear form
-                              setElections(els => els.map(el => el.id === e.id ? { ...el, _newCandidateName: '', _newCandidatePhoto: '' } : el));
-                            } catch (err) {
-                              setError('Failed to add candidate');
-                            }
-                          }}>Add</Button>
-                        </Box>
-                      )}
+  <Box sx={{ mt: 2, display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+    <TextField size="small" label="New Candidate Name" value={e._newCandidateName || ''}
+      onChange={ev => setElections(elections.map(el => el.id === e.id ? { ...el, _newCandidateName: ev.target.value } : el))} />
+    <TextField size="small" label="Photo URL (optional)" value={e._newCandidatePhoto || ''}
+      onChange={ev => setElections(elections.map(el => el.id === e.id ? { ...el, _newCandidatePhoto: ev.target.value } : el))} />
+    <Button size="small" variant="contained" color="primary"
+      disabled={e._addLoading}
+      onClick={async () => {
+        setElections(els => els.map(el => el.id === e.id ? { ...el, _addLoading: true } : el));
+        try {
+          await axios.post(`${api}/elections/${e.id}/candidates`, {
+            name: e._newCandidateName,
+            photo_url: e._newCandidatePhoto,
+            username
+          }, {
+            headers: { 'Content-Type': 'application/json' }
+          });
+          // Refresh elections
+          const res = await axios.get(`${api}/elections`);
+          setElections(res.data);
+          setSuccessMsg('Candidate added!');
+        } catch (err) {
+          setError('Failed to add candidate');
+        }
+        setElections(els => els.map(el => el.id === e.id ? { ...el, _addLoading: false, _newCandidateName: '', _newCandidatePhoto: '' } : el));
+      }}>
+      {e._addLoading ? 'Adding...' : 'Add'}
+    </Button>
+  </Box>
+)}
                     </Box>
                   </CardContent>
                   <CardActions>
@@ -436,6 +437,60 @@ function App() {
           </Box>
         </Box>
       )}
+      {/* Confirmation Dialog for Candidate Deletion */}
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+        <DialogTitle>Confirm Remove Candidate</DialogTitle>
+        <DialogContent>
+          Are you sure you want to remove this candidate? This action cannot be undone.
+        </DialogContent>
+        <CardActions sx={{ justifyContent: 'flex-end', p: 2 }}>
+          <Button onClick={() => setConfirmOpen(false)} color="primary" variant="outlined">Cancel</Button>
+          <Button
+            onClick={async () => {
+              setConfirmOpen(false);
+              if (!candidateToDelete) return;
+              try {
+                await axios.delete(`${api}/candidates/${candidateToDelete.id}`, {
+                  data: { username },
+                  headers: { 'Content-Type': 'application/json' }
+                });
+                // Refresh elections
+                const res = await axios.get(`${api}/elections`);
+                setElections(res.data);
+                setSuccessMsg('Candidate removed!');
+              } catch (err) {
+                setError('Failed to remove candidate');
+              }
+              setCandidateToDelete(null);
+            }}
+            color="error"
+            variant="contained"
+          >
+            Remove
+          </Button>
+        </CardActions>
+      </Dialog>
+      {/* Global Snackbars for Feedback */}
+      <Snackbar
+        open={!!successMsg}
+        autoHideDuration={3000}
+        onClose={() => setSuccessMsg('')}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSuccessMsg('')} severity="success" sx={{ width: '100%' }}>
+          {successMsg}
+        </Alert>
+      </Snackbar>
+      <Snackbar
+        open={!!error}
+        autoHideDuration={4000}
+        onClose={() => setError('')}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setError('')} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
     </DashboardLayout>
   );
 }
