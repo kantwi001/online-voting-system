@@ -6,7 +6,7 @@ import DashboardLayout from './DashboardLayout';
 import CandidatePhotoInput from './CandidatePhotoInput';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
-const api = 'http://localhost:5001';
+const api = 'http://127.0.0.1:8080';
 
 function App() {
   const [view, setView] = useState('login');
@@ -198,8 +198,52 @@ function App() {
                           <Button size="small" variant="contained" color="success" onClick={() => handleVote(e.id, c.id)} sx={{ ml: 1 }}>
                             Vote
                           </Button>
+                          {role === 'admin' && username === 'kantwi' && (
+                            <Button size="small" variant="outlined" color="error" onClick={async () => {
+                              try {
+                                await axios.delete(`${api}/candidates/${c.id}`, {
+  data: { username },
+  headers: { 'Content-Type': 'application/json' }
+});
+                                // Refresh elections
+                                const res = await axios.get(`${api}/elections`);
+                                setElections(res.data);
+                              } catch (err) {
+                                setError('Failed to delete candidate');
+                              }
+                            }} sx={{ ml: 1 }}>
+                              Remove
+                            </Button>
+                          )}
                         </Paper>
                       ))}
+                      {/* Add Candidate Form (admin only) */}
+                      {role === 'admin' && username === 'kantwi' && (
+                        <Box sx={{ mt: 2, display: 'flex', gap: 1, alignItems: 'center' }}>
+                          <TextField size="small" label="New Candidate Name" value={e._newCandidateName || ''}
+                            onChange={ev => setElections(elections.map(el => el.id === e.id ? { ...el, _newCandidateName: ev.target.value } : el))} />
+                          <TextField size="small" label="Photo URL (optional)" value={e._newCandidatePhoto || ''}
+                            onChange={ev => setElections(elections.map(el => el.id === e.id ? { ...el, _newCandidatePhoto: ev.target.value } : el))} />
+                          <Button size="small" variant="contained" color="primary" onClick={async () => {
+                            try {
+                              await axios.post(`${api}/elections/${e.id}/candidates`, {
+  name: e._newCandidateName,
+  photo_url: e._newCandidatePhoto,
+  username
+}, {
+  headers: { 'Content-Type': 'application/json' }
+});
+                              // Refresh elections
+                              const res = await axios.get(`${api}/elections`);
+                              setElections(res.data);
+                              // Clear form
+                              setElections(els => els.map(el => el.id === e.id ? { ...el, _newCandidateName: '', _newCandidatePhoto: '' } : el));
+                            } catch (err) {
+                              setError('Failed to add candidate');
+                            }
+                          }}>Add</Button>
+                        </Box>
+                      )}
                     </Box>
                   </CardContent>
                   <CardActions>

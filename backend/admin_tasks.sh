@@ -13,7 +13,7 @@ case "$1" in
     ;;
   migrate-db)
     echo "Running DB migrations (create all tables if missing)"
-    python3 -c "from app import db, app; with app.app_context(): db.create_all()"
+    python3 -c "from app import db, app; ctx = app.app_context(); ctx.push(); db.create_all(); ctx.pop()"
     ;;
   *)
     echo "Usage: $0 {reset-admin-password <newpassword>|migrate-db}"

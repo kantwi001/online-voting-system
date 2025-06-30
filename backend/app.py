@@ -46,6 +46,29 @@ class Settings(db.Model):
 
 # Routes
 
+@app.route('/elections/<int:election_id>/candidates', methods=['POST'])
+@admin_required
+def add_candidate(election_id):
+    data = request.json
+    name = data.get('name')
+    photo_url = data.get('photo_url')
+    if not name:
+        return jsonify({'message': 'Candidate name required'}), 400
+    candidate = Candidate(name=name, election_id=election_id, photo_url=photo_url)
+    db.session.add(candidate)
+    db.session.commit()
+    return jsonify({'message': 'Candidate added', 'candidate': {'id': candidate.id, 'name': candidate.name, 'photo_url': candidate.photo_url}})
+
+@app.route('/candidates/<int:candidate_id>', methods=['DELETE'])
+@admin_required
+def delete_candidate(candidate_id):
+    candidate = Candidate.query.get(candidate_id)
+    if not candidate:
+        return jsonify({'message': 'Candidate not found'}), 404
+    db.session.delete(candidate)
+    db.session.commit()
+    return jsonify({'message': 'Candidate deleted'})
+
 from functools import wraps
 
 def admin_required(f):
